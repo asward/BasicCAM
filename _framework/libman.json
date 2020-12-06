@@ -1,0 +1,38 @@
+{
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "ace@1.4.12",
+      "destination": "wwwroot/js/ace/"
+    },
+    {
+      "library": "popper.js@2.4.4",
+      "destination": "wwwroot/lib/popper/"
+    },
+    {
+      "library": "twitter-bootstrap@4.5.2",
+      "destination": "wwwroot/lib/bootstrap/"
+    },
+    {
+      "library": "three.js@r120",
+      "destination": "wwwroot/lib/three.js/"
+    },
+    {
+      "library": "jquery@3.5.1",
+      "destination": "wwwroot/js/jquery/",
+      "files": [
+        "jquery.js",
+        "jquery.min.js",
+        "jquery.min.map",
+        "jquery.slim.js",
+        "jquery.slim.min.js",
+        "jquery.slim.min.map"
+      ]
+    },
+    {
+      "library": "split.js@1.6.2",
+      "destination": "wwwroot/js/splitjs/"
+    }
+  ],
+  "version": "1.0"
+}
