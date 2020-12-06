@@ -21,7 +21,8 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@
+      - name: Checkout
+        uses: actions/checkout@v1
         
       # sets up .NET Core SDK 5.0
       - name: Setup .NET Core SDK
@@ -31,7 +32,7 @@ jobs:
 
       # publishes Blazor project to the release-folder
       - name: Publish .NET Core Project
-        run: dotnet publish BlazorGitHubPagesDemo.csproj -c Release -o release --nologo
+        run: dotnet publish src/BasicCAM.WASM/BasicCAM.WASM.csproj -c Release -o release --nologo
 
       - name: Commit wwwroot to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@3.7.1
