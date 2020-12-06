@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AssemblyName>BasicCAM.WASM</AssemblyName>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazor.Extensions.Logging" Version="1.1.1" />
+    <PackageReference Include="Blazored.LocalStorage" Version="3.0.0" />
+    <PackageReference Include="Blazored.Modal" Version="5.1.0" />
+    <PackageReference Include="BlazorStrap" Version="1.3.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="5.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="5.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Web.LibraryManager.Build" Version="2.1.113" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+    <PackageReference Include="System.Net.Http.Json" Version="5.0.0" />
+    <PackageReference Include="Tewr.Blazor.FileReader" Version="2.1.0.20274" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BasicCAM.Core\BasicCAM.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\samplefile.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_circle.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_counter_arcs.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_filletsquare.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_filletsquare_polyline.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_gear.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_gear_polyline.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\samplefile_square.dxf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,37 @@
+﻿@page "/"
+
+@inherits LayoutComponentBase
+@using BasicCAM.WASM.Application
+@using BasicCAM.WASM.Components
+
+@using Microsoft.Extensions.Logging
+@inject IJSRuntime JSRuntime
+@inject ILogger<MainLayout> logger
+@inject BasicCAMMain App
+<div class="page">
+
+    <style>
+    </style>
+
+    <NavMenu @ref="NavMenu" />
+    <Sidebar @ref="Sidebar" />
+    <div class="rendered-content" id="renderdiv"></div>
+
+</div>
+@code{
+    private NavMenu NavMenu { get; set; }
+    private Sidebar Sidebar { get; set; }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+
+        base.OnAfterRender(firstRender);
+        if (firstRender)
+        {
+            JSRuntime.InvokeVoidAsync("BasicCAMJS.initialize");
+
+        };
+    }
+}
+
+

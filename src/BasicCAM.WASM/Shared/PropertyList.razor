@@ -1,0 +1,13 @@
+﻿@using BasicCAM
+@using System.Reflection
+<div class="property-list">
+    @foreach (var propertyInfo in @Object.GetType().GetProperties())
+    {
+        <PropertyEditor Object="@Object" Path="@propertyInfo.Name"></PropertyEditor>
+    }
+</div>
+
+@code{
+    [Parameter]
+    public Object Object { get; set; }
+}

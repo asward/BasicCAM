@@ -1,0 +1,48 @@
+﻿@inject IJSRuntime JSRuntime
+
+<nav class="sidebar">
+    <ul class="sidebar-buttons" role="tablist">
+        <li class="sidebar-item active" role="tab" aria-controls="tree">
+            <div class="sidebar-text">
+                Tree
+            </div>
+        </li>
+        <li class="sidebar-item" role="tab" aria-controls="preferences">
+            <div class="sidebar-text">
+                Preferences
+            </div>
+        </li>
+        <li class="sidebar-item" role="tab" aria-controls="output">
+            <div class="sidebar-text">
+                Output
+            </div>
+        </li>
+    </ul>
+</nav>
+<div class="slider" id="slider">
+    <div id="tree" class=" slider-content" role="tabpanel" aria-labledby="tree-tab">
+        <ElementTree/>
+    </div>
+    <div id="preferences" class=" slider-content" role="tabpanel" aria-labledby="preferences-tab">
+         <Preferences/>
+    </div>
+    <div id="output" class="slider-content" role="tabpanel" aria-labledby="output-tab">
+        <GCodeOutput />
+    </div>
+    <div class="slider-handle" data-target="#slider"></div>
+
+</div>
+@code{
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            JSRuntime.InvokeVoidAsync("Sidebar.load");
+
+        };
+        base.OnAfterRender(firstRender);
+    }
+}
+
+

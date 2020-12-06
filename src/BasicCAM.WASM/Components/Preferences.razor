@@ -1,0 +1,41 @@
+﻿@using BasicCAM.WASM.Application
+@inject IJSRuntime JSRuntime
+
+@inject BasicCAMMain App
+
+<input id="search" placeholder="Search Preferences" type="search" class="property-search" />
+<EditForm Model="this" class="property-form">
+
+    <DataAnnotationsValidator></DataAnnotationsValidator>
+    <label class="property-header">GCode</label>
+    <div id="gcode">
+        <PropertyList Object="App.GCode_Preferences" />
+    </div>
+
+    <label class="property-header">Document</label>
+    <div id="document">
+        <PropertyList Object="App.Document_Preferences" />
+    </div>
+
+    <label class="property-header">CAM</label>
+    <div id="cam">
+        <PropertyList Object="App.CAM_Preferences" />
+    </div>
+
+    <label class="property-header">Machine</label>
+    <div id="machine">
+        <PropertyList Object="App.Machine_Preferences" />
+    </div>
+</EditForm>
+@code {
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            JSRuntime.InvokeVoidAsync("Sidebar.initSearch");
+
+        };
+        base.OnAfterRender(firstRender);
+    }
+}

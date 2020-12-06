@@ -1,0 +1,165 @@
+﻿@using BasicCAM.WASM.Application
+@using Microsoft.Extensions.Logging
+@using Blazored.Modal.Services
+@using Tewr.Blazor.FileReader
+
+ 
+@inject BasicCAMMain App
+@inject HttpClient Http
+
+
+
+<nav class="navbar">
+    <a class="brand"></a>
+    <!--   <button class="d-a-sm-none  menu-btn collapse-toggle" toggle="collapse" data-target="nav-menu"> -->
+    <!--     <i class="fa fa-bars"></i> -->
+    <!--   </button> -->
+    <ul class="menu-items">
+        <li class="">
+            <button class="menu-btn" @onclick="OnClickedNewProject">
+                <i class="fa fa-file"></i>
+            </button>
+        </li>
+
+        <li class="">
+            <button class="menu-btn" @onclick="OnClickedLoadProject">
+                <i class="fa fa-folder-open"></i>
+            </button>
+        </li>
+        <li class="">
+            <button class="menu-btn" @onclick="OnClickedSaveProject">
+                <i class="fa fa-save"></i>
+            </button>
+        </li>
+
+        <li class="">
+            <button class="menu-btn" @onclick="OnClickedAddDXF">
+                <i class="fas fa-file-upload"></i>
+            </button>
+        </li>
+
+        <li class="">
+            <button class="menu-btn" @onclick="OnClickedSolve">
+                <i class="fas fa-gears"></i>
+            </button>
+        </li>
+
+        <li class="">
+            <button class="menu-btn" @onclick="OnClickedSample">
+                <i class="fas fa-database"></i>
+            </button>
+        </li>
+    </ul>
+</nav>
+
+@code{
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    //[Inject]
+    //private IModalService Modal { get; set; }
+
+    [Inject]
+    private ILogger<NavMenu> logger { get; set; }
+
+
+    [Inject]
+    private IFileReaderService fileReaderService { get; set; }
+
+    public event EventHandler NewProjectClicked;
+    protected virtual async void OnClickedNewProject(MouseEventArgs e)
+    {
+        EventHandler handler = NewProjectClicked;
+        App.NewProject();
+        handler?.Invoke(this, e);
+    }
+
+
+    public event EventHandler LoadProjectClicked;
+    protected virtual async void OnClickedLoadProject(MouseEventArgs e)
+    {
+        EventHandler handler = LoadProjectClicked;
+        await App.LoadProject();
+        handler?.Invoke(this, e);
+    }
+
+    public event EventHandler SaveProjectClicked;
+    protected virtual async void OnClickedSaveProject(MouseEventArgs e)
+    {
+        EventHandler handler = SaveProjectClicked;
+        await App.SaveProject();
+        handler?.Invoke(this, e);
+    }
+
+    public event EventHandler SaveAsProjectClicked;
+    protected virtual async void OnClickedSaveAsProject(MouseEventArgs e)
+    {
+        EventHandler handler = SaveAsProjectClicked;
+        await App.SaveProjectAs();
+        handler?.Invoke(this, e);
+    }
+
+    public event EventHandler AddDXFClicked;
+    protected virtual async void OnClickedAddDXF(MouseEventArgs e)
+    {
+
+        var openFileModal = Modal.Show<OpenFile>("Add File");
+        var result = await openFileModal.Result;
+
+        if (result.Cancelled)
+        {
+            logger.LogInformation("Modal was cancelled.");
+            return;
+        }
+
+        //ElementReference inputTypeFileElement = (ElementReference)result.Data;
+
+        //var files = await fileReaderService.CreateReference(inputTypeFileElement).EnumerateFilesAsync();
+        //var firstFile = files.First();
+
+        //IFileReference fileRef= (IFileReference) result.Data;
+
+        byte[] fileBytes = (byte[])result.Data;
+
+        EventHandler handler = AddDXFClicked;
+        await App.AddFile(fileBytes);
+        handler?.Invoke(this, e);
+    }
+
+    //public event EventHandler SettingsClicked;
+    //protected virtual void OnClickedSettings(MouseEventArgs e)
+    //{
+    //    EventHandler handler = SettingsClicked;
+    //    handler?.Invoke(this, e);
+    //}
+
+    public event EventHandler AboutClicked;
+    protected virtual void OnClickedAbout(MouseEventArgs e)
+    {
+        EventHandler handler = AboutClicked;
+        handler?.Invoke(this, e);
+    }
+
+    public event EventHandler SolveClicked;
+    protected virtual void OnClickedSolve(MouseEventArgs e)
+    {
+        App.Reclaculate();
+
+        EventHandler handler = SolveClicked;
+        handler?.Invoke(this, e);
+    }
+
+    public event EventHandler SampleClicked;
+    protected virtual async void OnClickedSample(MouseEventArgs e)
+    {
+        //App.NewProject();
+        byte[] sampleFile = await Http.GetByteArrayAsync("samplefile_gear_polyline.dxf");
+
+        await App.AddFile(sampleFile);
+        App.Reclaculate();
+
+        EventHandler handler = SampleClicked;
+        handler?.Invoke(this, e);
+    }
+}

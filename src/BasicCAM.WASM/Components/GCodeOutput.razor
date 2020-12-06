@@ -1,0 +1,31 @@
+﻿
+@inject IJSRuntime JSRuntime
+@inject BasicCAM.WASM.Application.BasicCAMMain MainApp;
+@using System.Collections.ObjectModel
+
+
+<div id="editor">
+</div>
+@code {
+    private string aceId = "editor";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JSRuntime.InvokeAsync<string>("BasicCAMJS.aceInitialize", aceId);
+
+        await JSRuntime.InvokeAsync<string>("BasicCAMJS.aceUpdateText", aceId, MainApp.GCode.ToArray());
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+    protected override Task OnInitializedAsync()
+    {
+        MainApp.SolutionDataChanged += UpdateGCode;
+        return base.OnInitializedAsync();
+    }
+    private void UpdateGCode(object caller, EventArgs e)
+    {
+        JSRuntime.InvokeAsync<string>("BasicCAMJS.aceUpdateText", aceId, MainApp.GCode.ToArray());
+        StateHasChanged();
+    }
+}

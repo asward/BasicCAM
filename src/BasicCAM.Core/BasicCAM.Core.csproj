@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>BasicCAM.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Interpreter\GCodeReader.cs" />
+    <Compile Remove="Interpreter\GCode_Interpreter.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DXFReader.Core" Version="1.0.0" />
+    <PackageReference Include="MathNet.Numerics" Version="4.12.0" />
+  </ItemGroup>
+
+</Project>
