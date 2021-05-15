@@ -3,39 +3,62 @@
 
 @inject BasicCAMMain App
 
-<input id="search" placeholder="Search Preferences" type="search" class="property-search" />
-<EditForm Model="this" class="property-form">
-
-    <DataAnnotationsValidator></DataAnnotationsValidator>
-    <label class="property-header">GCode</label>
-    <div id="gcode">
-        <PropertyList Object="App.GCode_Preferences" />
+    <div class="clamp-top large-header">
+        Preferences
     </div>
-
-    <label class="property-header">Document</label>
-    <div id="document">
-        <PropertyList Object="App.Document_Preferences" />
+    <div class="clamp-top">
+        <input id="search" placeholder="Search Preferences" type="search" class="property-search" />
     </div>
+    <div class="fill scroller">
+        <EditForm EditContext="EditContext" class="property-form">
 
-    <label class="property-header">CAM</label>
-    <div id="cam">
-        <PropertyList Object="App.CAM_Preferences" />
+            <DataAnnotationsValidator></DataAnnotationsValidator>
+
+
+            <div id="cam">
+                <label class="property-header">CAM</label>
+                <PropertyList Object="App.BasicCAMProject.CAM_Preferences" />
+            </div>
+
+            <div id="tool">
+                <label class="property-header">Tool</label>
+                <PropertyList Object="App.BasicCAMProject.Tool_Preferences" />
+            </div>
+
+            <div id="machine">
+                <label class="property-header">Machine</label>
+                <PropertyList Object="App.BasicCAMProject.Machine_Preferences" />
+            </div>
+
+            <div id="gcode">
+                <label class="property-header">GCode</label>
+                <PropertyList Object="App.BasicCAMProject.GCode_Preferences" />
+            </div>
+        </EditForm>
     </div>
+    @code {
+        private EditContext EditContext;
 
-    <label class="property-header">Machine</label>
-    <div id="machine">
-        <PropertyList Object="App.Machine_Preferences" />
-    </div>
-</EditForm>
-@code {
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
+        protected override async Task OnInitializedAsync()
         {
-            JSRuntime.InvokeVoidAsync("Sidebar.initSearch");
+            EditContext = new EditContext(this);
+            EditContext.OnFieldChanged += EditContext_OnFieldChanged;
 
-        };
-        base.OnAfterRender(firstRender);
+            base.OnInitialized();
+        }
+
+        protected void EditContext_OnFieldChanged(object sender, EventArgs e)
+        {
+            App.PreferenceChanged();
+        }
+
+        protected override void OnAfterRender(bool firstRender)
+        {
+            if (firstRender)
+            {
+                JSRuntime.InvokeVoidAsync("Sidebar.initSearch");
+
+            };
+            base.OnAfterRender(firstRender);
+        }
     }
-}

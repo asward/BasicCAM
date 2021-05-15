@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace BasicCAM.Geometry
+namespace BasicCAM.Core.Geometry
 {
     [Serializable]
     public class Line
@@ -22,6 +22,7 @@ namespace BasicCAM.Geometry
             A = p1;
             B = p1 + new Vector(angleRad);    
         }
+
         public Line PerpendicularAt(Point p)
         {
             return new Line(p, p + UnitVector.Rotate(Math.PI/2));
@@ -43,7 +44,7 @@ namespace BasicCAM.Geometry
             });
             var b = Vector<double>.Build.Dense(new double[] { l2.A.X - l1.A.X, l2.A.Y - l1.A.Y, l2.A.Z - l1.A.Z });
 
-            var x = A.Solve(b); //Todo could be parallel
+            var x = A.Solve(b); //TODO Solution could be parallel lines
 
             return l1.A + x[0] * v1;
         }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace BasicCAM.GCode
+namespace BasicCAM.Core.GCode
 {
     [Serializable]
     public class GCodeWord
@@ -43,6 +43,15 @@ namespace BasicCAM.GCode
 
                 return Regex.Match(wordString, parameter_code_pattern).Value;
             }
+        }
+
+
+        public string ToString(int precision = 5)
+        {
+            double tol_val = Math.Round(Value, precision);
+            string val_string = ((Decimal)Double.Parse(tol_val.ToString($"G"))).ToString(); 
+            
+            return $"{Type}{val_string}";
         }
     }
 }

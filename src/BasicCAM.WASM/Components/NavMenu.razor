@@ -11,9 +11,6 @@
 
 <nav class="navbar">
     <a class="brand"></a>
-    <!--   <button class="d-a-sm-none  menu-btn collapse-toggle" toggle="collapse" data-target="nav-menu"> -->
-    <!--     <i class="fa fa-bars"></i> -->
-    <!--   </button> -->
     <ul class="menu-items">
         <li class="">
             <button class="menu-btn" @onclick="OnClickedNewProject">
@@ -22,27 +19,28 @@
         </li>
 
         <li class="">
-            <button class="menu-btn" @onclick="OnClickedLoadProject">
+            <button class="menu-btn" @onclick="OnClickedOpen">
                 <i class="fa fa-folder-open"></i>
             </button>
         </li>
+
         <li class="">
             <button class="menu-btn" @onclick="OnClickedSaveProject">
                 <i class="fa fa-save"></i>
             </button>
         </li>
 
-        <li class="">
+        @*<li class="">
             <button class="menu-btn" @onclick="OnClickedAddDXF">
                 <i class="fas fa-file-upload"></i>
             </button>
-        </li>
+        </li>*@
 
-        <li class="">
+        @*<li class="">
             <button class="menu-btn" @onclick="OnClickedSolve">
                 <i class="fas fa-gears"></i>
             </button>
-        </li>
+        </li>*@
 
         <li class="">
             <button class="menu-btn" @onclick="OnClickedSample">
@@ -71,16 +69,35 @@
     protected virtual async void OnClickedNewProject(MouseEventArgs e)
     {
         EventHandler handler = NewProjectClicked;
-        App.NewProject();
+        await App.NewProject();
         handler?.Invoke(this, e);
     }
 
 
-    public event EventHandler LoadProjectClicked;
-    protected virtual async void OnClickedLoadProject(MouseEventArgs e)
+    public event EventHandler OpenClicked;
+    protected virtual async void OnClickedOpen(MouseEventArgs e)
     {
-        EventHandler handler = LoadProjectClicked;
-        await App.LoadProject();
+        var openFileModal = Modal.Show<OpenModal>("Open");
+        var result = await openFileModal.Result;
+
+        if (result.Cancelled)
+            return;
+
+        OpenModalResults modalResults = (OpenModalResults) result.Data;
+
+        switch (modalResults.FileExtension.ToLower())
+        {
+            case ".dxf":
+                await App.AddFile(modalResults.ContentBuffer);
+                break;
+            case ".basiccam":
+                await App.LoadProject(modalResults.ContentBuffer);
+                break;
+            default:
+                break;
+        }
+
+        EventHandler handler = OpenClicked;
         handler?.Invoke(this, e);
     }
 
@@ -92,40 +109,40 @@
         handler?.Invoke(this, e);
     }
 
-    public event EventHandler SaveAsProjectClicked;
-    protected virtual async void OnClickedSaveAsProject(MouseEventArgs e)
-    {
-        EventHandler handler = SaveAsProjectClicked;
-        await App.SaveProjectAs();
-        handler?.Invoke(this, e);
-    }
+    //public event EventHandler SaveAsProjectClicked;
+    //protected virtual async void OnClickedSaveAsProject(MouseEventArgs e)
+    //{
+    //    EventHandler handler = SaveAsProjectClicked;
+    //    await App.SaveProjectAs();
+    //    handler?.Invoke(this, e);
+    //}
 
-    public event EventHandler AddDXFClicked;
-    protected virtual async void OnClickedAddDXF(MouseEventArgs e)
-    {
+    //public event EventHandler AddDXFClicked;
+    //protected virtual async void OnClickedAddDXF(MouseEventArgs e)
+    //{
 
-        var openFileModal = Modal.Show<OpenFile>("Add File");
-        var result = await openFileModal.Result;
+    //    var openFileModal = Modal.Show<OpenFile>("Open");
+    //    var result = await openFileModal.Result;
 
-        if (result.Cancelled)
-        {
-            logger.LogInformation("Modal was cancelled.");
-            return;
-        }
+    //    if (result.Cancelled)
+    //    {
+    //        logger.LogInformation("Modal was cancelled.");
+    //        return;
+    //    }
 
-        //ElementReference inputTypeFileElement = (ElementReference)result.Data;
+    //    //ElementReference inputTypeFileElement = (ElementReference)result.Data;
 
-        //var files = await fileReaderService.CreateReference(inputTypeFileElement).EnumerateFilesAsync();
-        //var firstFile = files.First();
+    //    //var files = await fileReaderService.CreateReference(inputTypeFileElement).EnumerateFilesAsync();
+    //    //var firstFile = files.First();
 
-        //IFileReference fileRef= (IFileReference) result.Data;
+    //    //IFileReference fileRef= (IFileReference) result.Data;
 
-        byte[] fileBytes = (byte[])result.Data;
+    //    byte[] fileBytes = (byte[])result.Data;
 
-        EventHandler handler = AddDXFClicked;
-        await App.AddFile(fileBytes);
-        handler?.Invoke(this, e);
-    }
+    //    EventHandler handler = AddDXFClicked;
+    //    await App.AddFile(fileBytes);
+    //    handler?.Invoke(this, e);
+    //}
 
     //public event EventHandler SettingsClicked;
     //protected virtual void OnClickedSettings(MouseEventArgs e)
@@ -144,7 +161,7 @@
     public event EventHandler SolveClicked;
     protected virtual void OnClickedSolve(MouseEventArgs e)
     {
-        App.Reclaculate();
+        App.Recalculate();
 
         EventHandler handler = SolveClicked;
         handler?.Invoke(this, e);
@@ -154,10 +171,11 @@
     protected virtual async void OnClickedSample(MouseEventArgs e)
     {
         //App.NewProject();
-        byte[] sampleFile = await Http.GetByteArrayAsync("samplefile_gear_polyline.dxf");
+        //byte[] sampleFile = await Http.GetByteArrayAsync("samples/samplefile_gear_polyline.dxf");
+        byte[] sampleFile = await Http.GetByteArrayAsync("samples/samplefile_gear.dxf");
+        //byte[] sampleFile = await Http.GetByteArrayAsync("samples/samplefile_gear_outsideerror.dxf");
 
         await App.AddFile(sampleFile);
-        App.Reclaculate();
 
         EventHandler handler = SampleClicked;
         handler?.Invoke(this, e);

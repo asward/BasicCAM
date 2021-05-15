@@ -2,18 +2,23 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BasicCAM.Geometry
+namespace BasicCAM.Core.Geometry
 {
-    public class Ray : Line
+    public class Ray 
     {
-        public Point Start { get; set; }
-        public Point ThroughPoint { get; set; }
-
-        private double AngleRad { get; set; }
-        public Ray(Point start, double angleRad) :base(start, angleRad)
+        public Point Start { get; }
+        public Angle Angle { get; }
+        public Ray(Point start, double angleRad) 
         {
             Start = start;
-            AngleRad = angleRad;
+            Angle = new Angle(angleRad);
+        }
+
+        public Ray(Point start, Point through)
+        {
+            Start = start;
+            var v = new Vector(start, through);
+            Angle= new Angle(v.AngleX);
         }
     }
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BasicCAM.Geometry
+namespace BasicCAM.Core.Geometry
 {
     public enum PLANE
     {
@@ -10,4 +10,5 @@ namespace BasicCAM.Geometry
         YZ,
         ZX
     }
+   
 }

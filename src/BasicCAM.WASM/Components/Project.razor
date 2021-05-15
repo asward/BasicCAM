@@ -1,0 +1,128 @@
+﻿@using BasicCAM.WASM.Application
+@using BasicCAM.Core.Features
+
+@inject BasicCAMMain App
+
+@inject IJSRuntime JSRuntime
+
+<div class="container">
+    @if (App.BasicCAMProject.Features.Any())
+    {
+        <div class="clamp-top large-header">
+            @App.BasicCAMProject.Name
+        </div>
+        <div class="fill scroller">
+            <ul class="block-list">
+
+                @foreach (var feature in App.BasicCAMProject.Features)
+                {
+                    <li class="block" tabindex="-1" @onclick="@(e => SelectedObject = feature.Settings)">
+                        <div class="name">@feature.Settings.Name</div>
+                        <dl class="settings">
+                            <div>
+                                <dt>Feedrate</dt>
+                                <dd>@FeatureFeedrate(feature)</dd>
+                            </div>
+                            <div>
+                                <dt>Speed/Power</dt>
+                                <dd>@FeatureToolpower(feature)</dd>
+                            </div>
+                        </dl>
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="clamp-bottom">
+            <label class="property-header">Feature Properties</label>
+            <EditForm EditContext="@EditContext" class="property-form">
+                <PropertyList Object="SelectedObject" />
+            </EditForm>
+        </div>
+    }
+    else
+    {
+        <Startup></Startup>
+    }
+</div>
+
+@code {
+    private string FeatureFeedrate(Feature feature)
+    {
+        return $"F{App.BasicCAMProject.CAM_Preferences.CutFeedrate*feature.Settings.FeedrateFactor}";
+    }
+    private string FeatureToolpower(Feature feature)
+    {
+        return $"S{(double)App.BasicCAMProject.CAM_Preferences.ToolSpeedPower * feature.Settings.ToolSpeedPowerFactor}";
+    }
+
+    private string FeaturePowerPercent(Feature feature)
+    {
+        var calcPower = feature.Settings.ToolSpeedPowerFactor;
+
+        if (calcPower > 100)
+            calcPower = 100;
+
+        return $"{calcPower}%";
+    }
+
+    private string BlockCutSide(Feature feature)
+    {
+        return $"{feature.Settings.CutSide}";
+    }
+
+    private string BlockLeadIn(Feature feature)
+    {
+        return feature.Settings.InsertLeadIn ? "LEAD IN": "NO LEAD IN";
+    }
+
+    private string FeaturePasses(Feature feature)
+    {
+        return $"{feature.Settings.Passes }";
+    }
+    private string FeaturePassOfset(Feature feature)
+    {
+        return $"{feature.Settings.ZStepOver}";
+    }
+
+    private Feature SelectedFeature
+    {
+        get
+        {
+            return SelectedFeature as Feature;
+        }
+    }
+
+    private EditContext EditContext;
+
+    private object SelectedObject { get; set; } = new object();
+
+    protected override async Task OnInitializedAsync()
+    {
+        EditContext = new EditContext(this);
+        EditContext.OnFieldChanged += EditContext_OnFieldChanged;
+
+        App.SolutionDataChanged += Update;
+
+        await base.OnInitializedAsync();
+    }
+
+    protected void EditContext_OnFieldChanged(object sender, EventArgs e)
+    {
+        App.PreferenceChanged();
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            App.SolutionDataChanged += Update;
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    void Update(object sender, EventArgs e)
+    {
+        StateHasChanged();
+    }
+}

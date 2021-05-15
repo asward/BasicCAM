@@ -1,13 +1,14 @@
-﻿using BasicCAM.Preferences;
+﻿using BasicCAM.Core.Preferences;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace BasicCAM.GCode
+namespace BasicCAM.Core.GCode
 {
     [Serializable]
     public class GCodeLine
     {
+        public string Id { get; set; }
         public List<GCodeWord> Words { get; set; } = new List<GCodeWord>();
         public string Comments { get;  set; }
         public GCodeLine(GCodeWord function)
@@ -45,6 +46,21 @@ namespace BasicCAM.GCode
             }
 
             return false;
+        }
+
+
+        public  string ToString(int precision = 3, string startCommentDelimiter = "(", string endCommentDelimeter = ")")
+        {
+            string output = "";
+            foreach (var word in Words)
+            {
+                output += word.ToString(precision);
+            }
+
+            if (!String.IsNullOrEmpty(Comments))
+                output += $"{startCommentDelimiter}{Comments}{endCommentDelimeter}";
+
+            return output;
         }
     }
 }

@@ -1,0 +1,84 @@
+﻿@using BasicCAM.WASM.Application
+@using BasicCAM.Core.Features
+
+@inject IJSRuntime JSRuntime
+@inject BasicCAM.WASM.Application.BasicCAMMain MainApp;
+
+<div class="container">
+    <div class="clamp-top large-header">
+        Solution
+    </div>
+    <div id="editor" class="fill">
+    </div>
+    <div class="clamp-bottom button-bar">
+        <button @onclick="OnClearClicked">Clear </button>
+
+        <button @onclick="OnRecalcuateClicked">Recalculate</button>
+    </div>
+</div>
+
+@code {
+    private string aceId = "editor";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeAsync<string>("AceConfig.aceInitialize", aceId);
+
+            await UpdateGCode();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        MainApp.SolutionDataChanged += HandleUpdateGCode;
+        MainApp.SolutionStateChanged += OnSolutionStateChange;
+
+        return base.OnInitializedAsync();
+    }
+
+    private void HandleUpdateGCode(object caller, EventArgs e)
+    {
+        UpdateGCode();
+    }
+
+    private async Task UpdateGCode()
+    {
+        var gCodeArray = MainApp.GCodeOutput.GUIDOutput().ToArray();
+        await JSRuntime.InvokeAsync<string>("AceConfig.aceUpdateText", aceId, gCodeArray);
+        StateHasChanged();
+    }
+
+    public string hideClass { get; set; } = "hidden";
+
+    public void OnSolutionStateChange(object caller, BasicCAMMain.SolutionStateChangeEventArgs e)
+    {
+        if (e.HasChanges)
+        {
+            hideClass = "";
+        }
+        else
+        {
+            hideClass = "hidden";
+        }
+
+        StateHasChanged();
+    }
+
+    public event EventHandler RecalcuateClicked;
+
+    protected virtual async void OnRecalcuateClicked(MouseEventArgs e)
+    {
+        EventHandler handler = RecalcuateClicked;
+        await MainApp.Recalculate();
+        handler?.Invoke(this, e);
+    }
+
+    protected virtual async void OnClearClicked(MouseEventArgs e)
+    {
+        await JSRuntime.InvokeVoidAsync("ThreeJSConfig.clearSolution");
+    }
+}

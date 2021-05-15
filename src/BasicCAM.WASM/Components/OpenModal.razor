@@ -1,0 +1,12 @@
+﻿
+
+<h2>Open Project</h2>
+<InputFile OnChange="@OpenNewFile" accept=".basiccam" />
+
+<h2>Open Recent</h2>
+@*LIST RECENT PROJECTS (SAVED IN BROWSER STORAGE)*@
+
+<h2>Open DXF</h2>
+<InputFile OnChange="@OpenNewFile"  accept=".dxf" />
+
+<BSButton @onclick="Close">Close</BSButton>

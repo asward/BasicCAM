@@ -1,0 +1,42 @@
+﻿@using Blazored.Modal;
+@using Blazored.Modal.Services;
+<h3>@Prompt</h3>
+
+<button @onclick="Yes" class="button @yesClass">@YesString</button>
+<button @onclick="No" class="button @noClass">@NoString</button>
+
+@code {
+
+    [ParameterAttribute]
+    public string Title { get; set; }
+
+    [ParameterAttribute]
+    public string Prompt { get; set; }
+
+    [ParameterAttribute]
+    public string YesString { get; set; } = "Yes";
+
+    [ParameterAttribute]
+    public string NoString { get; set; } = "No";
+
+    [ParameterAttribute]
+    public bool WarnYes { get; set; } = false;
+
+    [ParameterAttribute]
+    public bool WarnNo { get; set; } = false;
+
+    [CascadingParameter]
+    BlazoredModalInstance BlazoredModal { get; set; }
+
+    private string yesClass { get { return WarnYes ? "button-warn" : ""; } }
+    private string noClass { get { return WarnNo ? "button-warn" : ""; } }
+
+    public async Task Yes()
+    {
+        await BlazoredModal.Close(ModalResult.Ok<string>(""));
+    }
+    public async Task No()
+    {
+        await BlazoredModal.Cancel();
+    }
+}

@@ -19,6 +19,15 @@ using System.Reflection;
 
 namespace BasicCAM.WASM
 {
+    //TODO open modal/buttons cleanup
+    //TOOD saving
+
+    //TODO fix long pause on solve
+    //TODO need logo
+    //TODO highlight on select feature
+    //TODO tool animation
+    //TODO highlight on select gcode
+    //TODO autoname features on import
     public class Program
     {
         public static IWebAssemblyHostEnvironment Env { get; private set; }
@@ -44,7 +53,6 @@ namespace BasicCAM.WASM
 
             ConfigureServices(builder.Services);
 
-
             var host = builder.Build();
 
             ConfigureProviders(host.Services);
@@ -59,6 +67,7 @@ namespace BasicCAM.WASM
             services.AddScoped<BasicCAMMain>();
             services.AddOptions();
 
+            services.AddScoped(typeof(IUserInputService), typeof(UserInputService)) ;
 
             services.AddScoped(sp =>
             new HttpClient

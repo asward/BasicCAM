@@ -1,4 +1,4 @@
-﻿using BasicCAM.Segments;
+﻿using BasicCAM.Core.Segments;
 using System;
 using System.Collections.Generic;
 using System.Linq;

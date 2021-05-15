@@ -1,10 +1,13 @@
 ﻿@inject IJSRuntime JSRuntime
+@using BasicCAM.WASM.Application
+
+@inject BasicCAMMain App
 
 <nav class="sidebar">
     <ul class="sidebar-buttons" role="tablist">
-        <li class="sidebar-item active" role="tab" aria-controls="tree">
+        <li class="sidebar-item active" role="tab" aria-controls="project">
             <div class="sidebar-text">
-                Tree
+                Project
             </div>
         </li>
         <li class="sidebar-item" role="tab" aria-controls="preferences">
@@ -12,22 +15,22 @@
                 Preferences
             </div>
         </li>
-        <li class="sidebar-item" role="tab" aria-controls="output">
+        <li class="sidebar-item" role="tab" aria-controls="solution">
             <div class="sidebar-text">
-                Output
+                Solution
             </div>
         </li>
     </ul>
 </nav>
 <div class="slider" id="slider">
-    <div id="tree" class=" slider-content" role="tabpanel" aria-labledby="tree-tab">
-        <ElementTree/>
+    <div id="project" class="slider-content" role="tabpanel" aria-labledby="project-tab">
+        <Project />
     </div>
-    <div id="preferences" class=" slider-content" role="tabpanel" aria-labledby="preferences-tab">
-         <Preferences/>
+    <div id="preferences" class="slider-content" role="tabpanel" aria-labledby="preferences-tab">
+        <Preferences />
     </div>
-    <div id="output" class="slider-content" role="tabpanel" aria-labledby="output-tab">
-        <GCodeOutput />
+    <div id="solution" class="slider-content" role="tabpanel" aria-labledby="solution-tab">
+        <Solution />
     </div>
     <div class="slider-handle" data-target="#slider"></div>
 
@@ -39,9 +42,13 @@
         if (firstRender)
         {
             JSRuntime.InvokeVoidAsync("Sidebar.load");
-
+            App.SolutionDataChanged += SolutionChanged;
         };
         base.OnAfterRender(firstRender);
+    }
+    private void SolutionChanged(object sender, EventArgs e)
+    {
+        StateHasChanged();
     }
 }
 

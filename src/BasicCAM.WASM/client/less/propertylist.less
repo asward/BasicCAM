@@ -1,0 +1,77 @@
+﻿@import "variables.less";
+
+.property-form {
+}
+
+.property-row {
+    display: flex;
+    flex-direction: row-reverse;
+    border: 1px solid gray;
+    font-family: Monospace, sans-serif;
+    background: @bg-color;
+    color: @text-color;
+    font-size: 1rem;
+    min-height: 1.6rem;
+    align-items: center;
+}
+
+.property-search {
+    overflow-x: hidden;
+    font-weight: bold;
+    border-right: 1px solid gray;
+    width: 100%;
+    padding: 2px;
+    display: block;
+}
+.property-header {
+    overflow-x: hidden;
+    font-weight: bold;
+    width: 100%;
+    padding-left: .25em;
+    display: block;
+    background: @bg-color;
+    color: @text-color;
+    box-sizing: border-box;
+    padding-top: 1rem;
+}
+.property-title {
+    overflow-x: hidden;
+    border-right: 1px solid gray;
+    flex-grow: 1;
+    flex-basis: 0;
+    padding-left: .25em;
+    padding-top: .25em;
+    padding-bottom: .25em;
+}
+
+.property-input {
+    min-width: 0;
+    overflow-x: hidden;
+    flex-grow: 1;
+    flex-basis: 0;
+    border: none;
+    transition: border-color .15s ease-in-out;
+    transition: box-shadow .15s ease-in-out;
+    padding: 3px;
+    font-family: inherit;
+    background: @bg-color;
+    color: @text-color;
+    font-size: 1rem;
+}
+.property-input[type="checkbox"] {
+    margin: 3px;
+}
+
+.property-input:focus {
+    outline: 0;
+    box-shadow: rgba(130, 150, 140, 0.25) 0px 0px 0px 0.1rem; //TODO
+}
+
+.property-input:focus + .property-title {
+    background: @focus-color;
+    color: @text-color !important;
+}
+
+.property-row:hover > .property-title {
+    color: @focus-color;
+}

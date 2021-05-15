@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BasicCAM.Geometry
+namespace BasicCAM.Core.Geometry
 {
     public class Vector
     {
@@ -14,10 +14,16 @@ namespace BasicCAM.Geometry
         public double X;
         public double Y;
         public double Z;
-        public Vector(double angle)
+        public Vector(double angleRad)
         {
-            X = Math.Cos(angle);
-            Y = Math.Sin(angle);
+            X = Math.Cos(angleRad);
+            Y = Math.Sin(angleRad);
+            Z = 0;
+        }
+        public Vector(Angle angle)
+        {
+            X = Math.Cos(angle.Rad);
+            Y = Math.Sin(angle.Rad);
             Z = 0;
         }
         public Vector(Point end)
@@ -66,24 +72,6 @@ namespace BasicCAM.Geometry
                 return Math.Atan2(X, Z);
             }
         }
-        public static double Determinant(Vector v1, Vector v2, Vector v3)
-        {
-            //Check parallel
-            //Check identical
-            var a = v1.X * v2.Y * v3.Z - v1.X * v2.Z * v3.Y;
-            var b = -(v1.Y * v2.X * v3.Z - v1.Y * v2.Z * v3.X);
-            var c = v1.Z * v2.X * v3.Y - v1.Z * v2.Y * v3.X;
-
-            return a + b + c;
-        }
-        public static Vector Cross(Vector v1, Vector v2)
-        {
-            var i = v1.Y * v2.Z - v1.Z * v2.Y;
-            var j = v1.X * v2.Z - v1.Z * v2.X;
-            var k  = v1.X * v2.Y - v1.Y * v2.X;
-
-            return new Vector(i, j, k);
-        }
         public double[] ToArray()
         {
             return new double[] { X, Y, Z };
@@ -91,6 +79,14 @@ namespace BasicCAM.Geometry
     }
     public static class VectorExtensions
     {
+        public static Vector Cross(this Vector v1, Vector v2)
+        {
+            var i = v1.Y * v2.Z - v1.Z * v2.Y;
+            var j = v1.X * v2.Z - v1.Z * v2.X;
+            var k = v1.X * v2.Y - v1.Y * v2.X;
+
+            return new Vector(i, j, k);
+        }
         public static double AngleBetween(this Vector v1, Vector v2)
         {
             return  Math.Acos(v1*v2/ (v1.Magnitude * v2.Magnitude));
@@ -149,7 +145,5 @@ namespace BasicCAM.Geometry
 
             return  v;
         }
-      
-
     }
 }

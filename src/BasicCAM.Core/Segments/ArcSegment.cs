@@ -1,237 +1,34 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using BasicCAM.Geometry;
-using BasicCAM.GCode;
+using BasicCAM.Core.Geometry;
+using BasicCAM.Core.GCode;
+using BasicCAM.Core.Geometry;
+using BasicCAM.Core.Exceptions;
+using System.Linq;
 
-namespace BasicCAM.Segments
+namespace BasicCAM.Core.Segments
 {
+    using static Quadrants;
+    using static Axes;
+
     [Serializable]
     public class ArcSegment : Segment
-    { public override string Type { get; set; } = "Arc";
-     
-        public Point Center { get; set; }
-        public double Radius { get; set; }
-        public bool CW { get; set; } = true;
-
-        public override Segment Clone()
+    {         
+        protected ArcSegment()
         {
-            return new ArcSegment()
-            {
-                Type = Type,
-                Start = Start,
-                End = End,
-                Center = Center,
-                Radius = Radius,
-                CW =CW,
-                Settings = Settings
-            };
+
         }
 
         /// <summary>
-        /// + Offset is larger radius, - is smaller 
+        /// Arc from buldge
         /// </summary>
-        /// <param name="offset"></param>
+        /// <param name="p1"></param>
+        /// <param name="p2"></param>
+        /// <param name="buldge"></param>
+        /// <param name="scale"></param>
         /// <returns></returns>
-        public override Segment Offset(double offset)
-        {
-            var startOffset = new Vector(Center, Start);
-            var endOffset = new Vector(Center, End);
-
-            startOffset.Normalize().Scale(offset);
-            endOffset.Normalize().Scale(offset);
-
-            Start += startOffset;
-            End += endOffset;
-            Radius += offset;
-            return this;
-        }
-
-        public override double ApproxWinding()
-        {
-            var k = 5;
-            List<Point> approxPoints = new List<Point>();
-            for (int n = 0; n < k; n++)
-            {
-                Point p = new Point(Center.X + Radius * Math.Cos(t(n)), Center.Y + Radius * Math.Sin(t(n)));
-                approxPoints.Add(p);
-            }
-
-            double sum = 0;
-            for (int i = 0; i < approxPoints.Count-1; i++)
-            {
-                var p1 = approxPoints[i];
-                var p2 = approxPoints[i + 1];
-                sum += (p2.X - p1.X) * (p2.Y + p1.Y);
-            }
-
-            sum += (approxPoints[0].X - approxPoints[approxPoints.Count - 1].X) * (approxPoints[0].Y + approxPoints[approxPoints.Count - 1].Y);
-
-            //Break arc into list of line segments
-            return sum;
-
-            double t(int n)
-            {
-                return k / (n + 1) * 2 * Math.PI;
-            }
-        }
-       
-        public override Segment Reverse()
-        {
-            base.Reverse();
-            CW = !CW;
-
-            return this;
-        }
-        public override Segment Shift(double x, double y, double z)
-        {
-            Start = new Point(Start.X + x, Start.Y + y, Start.Z + z);
-            End = new Point(End.X + x, End.Y + y, End.Z + z);
-            Center = new Point(Center.X + x, Center.Y + y, Center.Z + z);
-
-            return this;
-        }
-
-        /// <summary>
-        /// Returns quadrant releative to the center of the arc for the given point
-        /// 1 - +x/+y
-        /// 2 - -x/+y
-        /// 3 - -x/-y
-        /// 4 - +x/-y
-        /// </summary>
-        /// <param name="p"></param>
-        /// <returns></returns>
-        private int FindQuadrant(Point p)
-        {
-            var v = Center.To(p);
-
-            if (v.X >= 0 && v.Y >0)
-                return 1;
-            if (v.X < 0 && v.Y >= 0)
-                return 2;
-            if (v.X <= 0 && v.Y < 0)
-                return 3;
-            return 4;
-        }
-
-        /// <summary>
-        /// Lists which local axes the Arc crosses 
-        /// 1 - +x
-        /// 2 - +y
-        /// 3 - -x
-        /// 4 - -y
-        /// </summary>
-        /// <returns></returns>
-        public List<int> AxesCrossed()
-        {
-            var axesCrossed = new List<int>();
-
-            var startQuad = FindQuadrant(Start);
-            var endQuad = FindQuadrant(End);
-
-            var currentQuad = startQuad;
-
-            while (endQuad != currentQuad)
-            {
-                if (CW)
-                {
-                    axesCrossed.Add(currentQuad);
-                    currentQuad = currentQuad - 1;
-                    if (currentQuad == 0)
-                        currentQuad = 4;
-                }
-                else
-                {
-                    currentQuad = currentQuad + 1;
-                    if (currentQuad == 5)
-                        currentQuad = 1;
-                    axesCrossed.Add(currentQuad);
-                }
-            }
-
-            return axesCrossed;
-        }
-
-        /// <summary>
-        /// Angle reletive to +x axis of a line from center to given p
-        /// </summary>
-        /// <param name="p"></param>
-        /// <returns></returns>
-        private double Angle(Point p) { 
-                if (p.X - Center.X == 0)
-                    return p.Y - Center.Y > 0 ? Math.PI / 2 : Math.PI/2+ Math.PI;
-                
-                return Math.Atan2((p.Y - Center.Y) , (p.X - Center.X)) ;
-        }
-
-        public override double StartAngle
-        {
-            get 
-            {
-                var value = CW ? Angle(Start) - Math.PI / 2 : Angle(Start) + Math.PI / 2;
-                return value % (2 * Math.PI);
-            }
-        }
-
-        public override double EndAngle
-        {
-            get
-            {
-                var value = CW ? Angle(End) - Math.PI / 2 : Angle(End) + Math.PI / 2;
-                return value % (2 * Math.PI);
-            }
-        }
-
-        public override double XMax
-        {
-            get
-            {
-                if (AxesCrossed().Contains(1))
-                    return Center.X + Radius;
-                return Math.Max(End.X, Start.X);
-            }
-        }
-        public override double YMax
-        {
-            get
-            {
-                if (AxesCrossed().Contains(2))
-                    return Center.Y + Radius;
-                return Math.Max(End.Y, Start.Y);
-            }
-        }
-        public override double XMin
-        {
-            get
-            {
-                if (AxesCrossed().Contains(3))
-                    return Center.X - Radius;
-                return Math.Min(End.X, Start.X);
-            }
-        }
-        public override double YMin
-        {
-            get
-            {
-                if (AxesCrossed().Contains(4))
-                    return Center.Y - Radius;
-                return Math.Min(End.Y, Start.Y);
-            }
-        }
-
-        private double? _length = null;
-        public override double Length
-        {
-            get
-            {
-                if (null == _length)
-                {
-                    _length = Radius * Math.Abs(EndAngle-StartAngle);
-                }
-                return (double)_length;
-            }
-        }
-        public static List<ArcSegment> BuildArcSegment(Point p1, Point p2, double buldge, double scale = 1)
+        public ArcSegment(Point p1, Point p2, double buldge, double scale = 1)
         {
             var theta = 4 * Math.Atan(buldge);
             var d = p1.To(p2).Magnitude / 2;
@@ -239,7 +36,7 @@ namespace BasicCAM.Segments
             var r = (Math.Pow(s, 2) + Math.Pow(d, 2)) / (2 * s);
 
 
-            var alpha = (Math.PI / 2 - Math.Abs(theta / 2))*Math.Sign(buldge);
+            var alpha = (Math.PI / 2 - Math.Abs(theta / 2)) * Math.Sign(buldge);
             //var alpha = sign * Math.Abs(buldge);
             var buldge_dist = d / Math.Tan(theta / 2);
 
@@ -259,64 +56,331 @@ namespace BasicCAM.Segments
                 .Scale(Math.Abs(r))
                 .Rotate(alpha);
 
-            Point center = p1 + vectorToCenter ;
-
-            return ArcSegment.BuildArcSegment(center.ScaleFromOrigin(scale), Math.Abs(r * scale), p1.ScaleFromOrigin(scale), p2.ScaleFromOrigin(scale), buldge < 0);
+            Center = p1 + vectorToCenter;
+            Radius = Math.Abs(r * scale);
+            Start = p1.ScaleFromOrigin(scale);
+            End = p2.ScaleFromOrigin(scale);
+            CW = buldge < 0;
         }
-        public static List<ArcSegment> BuildArcSegment(Point center, double radius, Point start_point, Point end_point, bool cw = true, double scale = 1)
-        {
-            return new List<ArcSegment>()
-                {
 
-                    //TODO SPLIT OUT THE ARCS?
-                    new ArcSegment()
-                    {
-                        Radius = radius*scale,
-                        Center = center.ScaleFromOrigin(scale),
-                        Start = start_point.ScaleFromOrigin(scale),
-                        End = end_point.ScaleFromOrigin(scale),
-                        CW = cw
-                    }
-                };
-        }
-        public static List<ArcSegment> BuildArcSegment(Point center, double radius, double start_angle, double end_angle, double scale = 1)
+        /// <summary>
+        /// Arc from centre, radius, start point, end point, an cw
+        /// </summary>
+        /// <param name="center"></param>
+        /// <param name="radius"></param>
+        /// <param name="start_point"></param>
+        /// <param name="end_point"></param>
+        /// <param name="cw"></param>
+        /// <param name="scale"></param>
+        /// <returns></returns>
+        public ArcSegment(Point center, double radius, Point start_point, Point end_point, bool cw = true, double scale = 1)
         {
-            return new List<ArcSegment>()
+            Radius = radius * scale;
+            Center = center.ScaleFromOrigin(scale);
+            Start = start_point.ScaleFromOrigin(scale);
+            End = end_point.ScaleFromOrigin(scale);
+            CW = cw;
+        }
+
+        /// <summary>
+        /// Arc from center, radius, start angle, end angle
+        /// </summary>
+        /// <param name="center"></param>
+        /// <param name="radius"></param>
+        /// <param name="start_angle"></param>
+        /// <param name="end_angle"></param>
+        /// <param name="cw"></param>
+        /// <param name="scale"></param>
+        /// <returns></returns>
+        public ArcSegment(Point center, double radius, double start_angle, double end_angle, bool cw = false, double scale = 1)
+        {
+            if (Math.Abs(end_angle % (2 * Math.PI)).Equals(start_angle % (2 * Math.PI)))
+                throw new SegmentCreationException($"Arc start/end angles must be seperated by larger than {Double.Epsilon}");
+
+            Radius = radius * scale;
+            Center = center.ScaleFromOrigin(scale);
+            Start = (new Point(
+                            Math.Cos(start_angle) * radius + center.X,
+                            Math.Sin(start_angle) * radius + center.Y,
+                            0)).ScaleFromOrigin(scale);
+            End = (new Point(
+                            Math.Cos(end_angle) * radius + center.X,
+                            Math.Sin(end_angle) * radius + center.Y,
+                            0)).ScaleFromOrigin(scale);
+
+            CW = cw;
+        }
+
+        /// <summary>
+        /// Arc Segment from a dxf definition of arc
+        /// </summary>
+        /// <param name="dxfArc"></param>
+        /// <param name="scale"></param>
+        public ArcSegment(DXFReader.Core.Entities.Arc dxfArc, double scale = 1)
+        {
+            var startAngle = dxfArc.StartAngle * Math.PI / 180;
+            var endAngle = dxfArc.EndAngle * Math.PI / 180;
+            Layer = dxfArc.LayerName;
+            Radius = dxfArc.Radius * scale;
+            Center = (new Point(dxfArc.Center.X, dxfArc.Center.Y, dxfArc.Center.Z)).ScaleFromOrigin(scale);
+            Start = (new Point(
+                            Math.Cos(startAngle) * Radius + Center.X,
+                            Math.Sin(startAngle) * Radius + Center.Y,
+                            0)).ScaleFromOrigin(scale);
+            End = (new Point(
+                            Math.Cos(endAngle) * Radius + Center.X,
+                            Math.Sin(endAngle) * Radius + Center.Y,
+                            0)).ScaleFromOrigin(scale);
+            CW = false;//DXF always defines them CCW
+        }
+
+        public override string Type { get; set; } = "Arc";
+     
+        public Point Center { get; protected set; }
+        private double _radius;
+        public double Radius
+        {
+            get { return _radius; } 
+            protected set 
+            { 
+                //Radius reduced below center point, flip sense and keep radius positive
+                if(value < 0)
+                    CW = !CW;
+
+                _radius = Math.Abs(value);
+            } 
+        }
+        public bool CW { get; protected set; } = true;
+        public override double StartAngle
+        {
+            get
             {
+                var v = new Vector(Center, Start);
+                var value = CW ? v.AngleX - Math.PI / 2 : v.AngleX + Math.PI / 2;
+                return value % (2 * Math.PI);
+            }
+        }
 
-                //TODO SPLIT OUT THE ARCS?
-                new ArcSegment()
+        public override double EndAngle
+        {
+            get
+            {
+                var v = new Vector(Center, End);
+
+                var value = CW ? v.AngleX - Math.PI / 2 : v.AngleX + Math.PI / 2;
+                return value % (2 * Math.PI);
+            }
+        }
+
+        public override double XMax
+        {
+            get
+            {
+                if (AxesCrossed().Contains(AXES.X_POS))
+                    return Center.X + Radius;
+                return Math.Max(End.X, Start.X);
+            }
+        }
+        public override double YMax
+        {
+            get
+            {
+                if (AxesCrossed().Contains(AXES.X_POS))
+                    return Center.Y + Radius;
+                return Math.Max(End.Y, Start.Y);
+            }
+        }
+        public override double XMin
+        {
+            get
+            {
+                if (AxesCrossed().Contains(AXES.X_NEG))
+                    return Center.X - Radius;
+                return Math.Min(End.X, Start.X);
+            }
+        }
+        public override double YMin
+        {
+            get
+            {
+                if (AxesCrossed().Contains(AXES.Y_NEG))
+                    return Center.Y - Radius;
+                return Math.Min(End.Y, Start.Y);
+            }
+        }
+
+        public override double Length
+        {
+            get
+            {
+                return Radius * AngleSwept;
+            }
+        }
+        public double AngleSwept
+        {
+            get
+            {
+                double angleBetween;
+                if (CW)
                 {
-                    Radius = radius*scale,
-                    Center = center.ScaleFromOrigin(scale),
-                    Start = (new Point(
-                                  Math.Cos(start_angle) * radius + center.X,
-                                  Math.Sin(start_angle) * radius + center.Y,
-                                  0)).ScaleFromOrigin(scale),
-                    End = (new Point(
-                                  Math.Cos(end_angle) * radius + center.X,
-                                  Math.Sin(end_angle) * radius + center.Y,
-                                  0)).ScaleFromOrigin(scale),
-                    CW = false //DXF always defines them CCW
+                    angleBetween = -(EndAngle - StartAngle);
                 }
-            };
+                else
+                {
+                    angleBetween = (EndAngle - StartAngle);
+                }
+                if (angleBetween < 0)
+                    angleBetween += 2 * Math.PI;
+
+                return angleBetween;
+            }
         }
-        public static List<ArcSegment> BuildArcSegment(Point p1, double radius, double scale = 1)
-        {                    
-            //4x 90deg arcs is more compatible than longer arcs
+        public IEnumerable<Point> PointsOnArc(int nPoints)
+        {
+            if (nPoints < 2)
+                throw new ArgumentOutOfRangeException("nPoints must be 2 or greater");
 
-            //for each 90deg of arc, use a new arc
-            //TODO
-            var arc_list = new List<ArcSegment>();
+            //Split arc into even arc lengths
+            var arcStep = AngleSwept / (nPoints-1);
 
-            arc_list.AddRange(BuildArcSegment(p1.ScaleFromOrigin(scale), radius * scale, BasicCAM.Geometry.Angle.Deg2Rad(0), BasicCAM.Geometry.Angle.Deg2Rad(90)));
-            arc_list.AddRange(BuildArcSegment(p1.ScaleFromOrigin(scale), radius * scale, BasicCAM.Geometry.Angle.Deg2Rad(90), BasicCAM.Geometry.Angle.Deg2Rad(180)));
-            arc_list.AddRange(BuildArcSegment(p1.ScaleFromOrigin(scale), radius * scale, BasicCAM.Geometry.Angle.Deg2Rad(180), BasicCAM.Geometry.Angle.Deg2Rad(270)));
-            arc_list.AddRange(BuildArcSegment(p1.ScaleFromOrigin(scale), radius * scale, BasicCAM.Geometry.Angle.Deg2Rad(270), BasicCAM.Geometry.Angle.Deg2Rad(360)));
+            if (CW)
+                arcStep = -arcStep;
 
-            return arc_list;
+            var baseVector = new Vector(Center, Start);
+            List<Point> approxPoints = new List<Point>();
+            for (int nthPoint = 0; nthPoint < nPoints; nthPoint++)
+            {
+                yield return Center + baseVector.Rotate(arcStep * nthPoint);
+            }
+        }
+        public override double ApproxWinding
+        {
+            get
+            {
+                List<Point> approxPoints = PointsOnArc(20).ToList();
+
+                double sum = 0;
+                for (int index = 0; index < approxPoints.Count - 1; index++)
+                {
+                    var p1 = approxPoints[index];
+                    var p2 = approxPoints[index + 1];
+                    sum += (p2.X - p1.X) * (p2.Y + p1.Y);
+                }
+
+                sum += (approxPoints[0].X - approxPoints[approxPoints.Count - 1].X) * (approxPoints[0].Y + approxPoints[approxPoints.Count - 1].Y);
+
+                return sum;
+            }
         }
 
+        /// <summary>
+        /// + Offset is larger radius, - is smaller 
+        /// </summary>
+        /// <param name="offset"></param>
+        /// <returns></returns>
+        public override Segment Offset(double offset)
+        {
+            //Offset with - value are left of direction
+            //Offset with + value are right of direction
+
+            //A        B       X              A B X
+            //CW with  + is DECREASE radius   1 1 0
+            //CW with  - is INCREASE radius   1 0 1
+            //CCW with + is INCREASE radius   0 1 1
+            //CCW with - is DECREASE radius   0 0 0
+
+            //A XNOR B  is same as A == B
+            var offsetIsPositive = offset >= 0;
+
+            if(CW == offsetIsPositive)
+            {
+                //DECRESE RADIUS
+                offset = -Math.Abs(offset);
+            }
+            else
+            {
+                //INCREASE RADIUS
+                offset = Math.Abs(offset);
+            }
+
+            //Vectors through center to end points
+            var startOffset = new Vector(Center, Start);
+            var endOffset = new Vector(Center, End);
+
+            //Normalize and scale to offset value
+            startOffset.Normalize().Scale(offset);
+            endOffset.Normalize().Scale(offset);
+
+            //Apply offset to start/end points
+            Start += startOffset;
+            End += endOffset;
+
+            //Change radius
+            Radius += offset;
+
+            return this;
+        }
+        public override Segment Reverse()
+        {
+            var temp = this.Start;
+            this.Start = this.End;
+            this.End = temp;
+
+            CW = !CW;
+
+            return this;
+        }
+        public override Segment Shift(double x, double y, double z)
+        {
+            Start = new Point(Start.X + x, Start.Y + y, Start.Z + z);
+            End = new Point(End.X + x, End.Y + y, End.Z + z);
+            Center = new Point(Center.X + x, Center.Y + y, Center.Z + z);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Lists which local axes the Arc crosses 
+        /// 1 - +x
+        /// 2 - +y
+        /// 3 - -x
+        /// 4 - -y
+        /// </summary>
+        /// <returns></returns>
+        public List<AXES> AxesCrossed()
+        {
+            var axesCrossed = new List<AXES>();
+
+            QUADRANT startQuad = Quadrants.FindQuadrant(Start,Center);
+            QUADRANT endQuad = Quadrants.FindQuadrant(End,Center);
+
+            QUADRANT currentQuad = startQuad;
+
+            while (endQuad != currentQuad)
+            {
+                if (CW)
+                {
+                    currentQuad = currentQuad.Previous();
+                    axesCrossed.Add(currentQuad.NextAxis());
+                }
+                else
+                {
+                    currentQuad = currentQuad.Next();
+                    axesCrossed.Add(currentQuad.PreviousAxis());
+                }
+            }
+
+            return axesCrossed;
+        }
+
+        public override bool IsOnSegment(Point p)
+        {
+            //Arc 1
+            //p1
+            var a1Startp1 = new ArcSegment(Center, Radius, Start, p, CW);
+            var a1p1End = new ArcSegment(Center, Radius, p, End, CW);
+            return (a1Startp1.Length + a1p1End.Length).ToString("G10") == Length.ToString("G10");
+        }
 
     }
 }

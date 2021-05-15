@@ -2,16 +2,21 @@
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
-using BasicCAM.Segments;
-using BasicCAM.Geometry;
+
+
+using System.IO;
+using System.Threading.Tasks;
+
 
 namespace BasicCAM.Tests.GCode
 {
+    using static BasicCAM.Tests.Seed;
     public class GCodeWriterTest
     {
         [Fact]
-        public void GCodeWriterWritesArcAcurately()
+        public async Task GCodeWriterWritesArcAcurately()
         {
+            
 
         }
     }

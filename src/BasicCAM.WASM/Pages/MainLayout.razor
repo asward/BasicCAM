@@ -8,30 +8,10 @@
 @inject IJSRuntime JSRuntime
 @inject ILogger<MainLayout> logger
 @inject BasicCAMMain App
+
 <div class="page">
-
-    <style>
-    </style>
-
-    <NavMenu @ref="NavMenu" />
-    <Sidebar @ref="Sidebar" />
-    <div class="rendered-content" id="renderdiv"></div>
-
+    <NavMenu/>
+    <Sidebar/>
+    <SolutionRendering/>
 </div>
-@code{
-    private NavMenu NavMenu { get; set; }
-    private Sidebar Sidebar { get; set; }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-
-        base.OnAfterRender(firstRender);
-        if (firstRender)
-        {
-            JSRuntime.InvokeVoidAsync("BasicCAMJS.initialize");
-
-        };
-    }
-}
-
 

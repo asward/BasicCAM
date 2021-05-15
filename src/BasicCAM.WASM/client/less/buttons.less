@@ -1,0 +1,30 @@
+﻿@import "variables.less";
+
+button {
+    font-size: 100%;
+    font-family: inherit;
+    border: 0;
+    padding: 0.5rem 1rem;
+    background: @text-color;
+    text-align: center;
+    color: @bg-color;
+    transition: background 250ms ease-in-out, transform 150ms ease;
+    transition: box-shadow 250ms ease-in-out, transform 150ms ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+button:focus {
+    outline: 1px solid #fff;
+    outline-offset: -4px;
+}
+button:active {
+    transform: scale(0.99);
+}
+.button-bar {
+    display: flex;
+}
+.button-bar button {
+    flex: 1 1 0px;
+    margin-left: 2px;
+    margin-right: 2px;
+}

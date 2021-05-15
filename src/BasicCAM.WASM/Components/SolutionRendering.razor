@@ -1,0 +1,43 @@
+﻿@using System.Text.Json
+@using BasicCAM.WASM.Serialization 
+@inject IJSRuntime JSRuntime
+@inject BasicCAM.WASM.Application.BasicCAMMain MainApp;
+
+
+<div class="rendered-content" id="renderdiv"></div>
+
+@code {
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(1000);
+
+            JSRuntime.InvokeVoidAsync("ThreeJSConfig.initialize");
+
+            MainApp.CadDataChanged += RefreshBaseCadRending;
+            MainApp.SolutionDataChanged += RefreshBaseSolutionRending;
+        }
+        base.OnAfterRenderAsync(firstRender);
+    }
+    public void RefreshBaseCadRending(object caller, EventArgs e)
+    {
+
+        var options = new JsonSerializerOptions();
+        options.Converters.Add(new SegmentSerializerConverter());
+        string json = System.Text.Json.JsonSerializer.Serialize(MainApp.BasicCAMProject.Segments, options);
+
+        JSRuntime.InvokeVoidAsync("ThreeJSConfig.plotCAD", json);
+    }
+    public void RefreshBaseSolutionRending(object caller, EventArgs e)
+    {
+
+        var options = new JsonSerializerOptions();
+        options.Converters.Add(new SegmentSerializerConverter());
+
+        string json = System.Text.Json.JsonSerializer.Serialize(MainApp.BasicCAMSolution.SolutionSegments, options);
+
+        JSRuntime.InvokeVoidAsync("ThreeJSConfig.plotCAM", json);
+    }
+}

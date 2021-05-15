@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BasicCAM.GCode
+namespace BasicCAM.Core.GCode
 {
-    public struct GCodeState
+    public class GCodeState
     {
-        public double X;
-        public double Y;
-        public double Z;
-        public double F;
-        public bool ToolOn;
-        public string Type;
-        public string ModalType;
+        public double X { get; set; } = 0;
+        public double Y { get; set; } = 0;
+        public double Z { get; set; } = 0;
+        public double F { get; set; } = 0;
+        public bool ToolOn { get; set; } = false;
+        public string Type { get; set; } = "";
+        public string ModalType { get; set; } = "";
+        public int ToolPower { get; internal set; }
     }
 }

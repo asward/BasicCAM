@@ -1,21 +1,22 @@
 ﻿@using System.Reflection
-@using BasicCAM.WASM.Attributes 
+@using System.ComponentModel
+
 <div class="property-row">
 
     @{
         switch (this.Object.GetType().GetProperty(Path).GetValue(this.Object))
         {
             case bool b:
-                <InputCheckbox @bind-Value="ValueAsBool" class="property-input" />
+                <InputCheckbox @bind-Value="ValueAsBool" class="property-input" title="@Description" />
                 break;
             case string s:
-                <InputText @bind-Value="ValueAsString" class="property-input" />
+                <InputText @bind-Value="ValueAsString" class="property-input" title="@Description"/>
                 break;
             case int i:
-                <InputNumber @bind-Value="ValueAsInt" class="property-input" />
+                <InputNumber @bind-Value="ValueAsInt" class="property-input" title="@Description"/>
                 break;
             case double d:
-                <InputNumber @bind-Value="ValueAsDouble" class="property-input" />
+                <InputNumber @bind-Value="ValueAsDouble" class="property-input" title="@Description"/>
                 break;
             default:
                 var propInfo = this.Object.GetType().GetProperty(Path);
@@ -23,14 +24,13 @@
                 var isEnumPropType = propInfo.PropertyType.IsEnum;
                 if (isEnumPropType)
                 {
-                    <select value="@propInfo.GetValue(this.Object)" @onchange="EnumChanged" class="property-input">
+                    <select value="@propInfo.GetValue(this.Object)" @onchange="EnumChanged" class="property-input" title="@Description">
                         @foreach (var opt in Enum.GetValues(propInfo.PropertyType))
                         {
                             <option value="@opt.ToString()">@opt.ToString()</option>
                         }
                     </select>
                 }
-
 
                 break;
         }
@@ -49,13 +49,12 @@
     public string Path { get; set; }
 
 
-
     private void EnumChanged(ChangeEventArgs e)
     {
         var propInfo = Object.GetType().GetProperty(Path);
         var stringValue = e.Value.ToString();
 
-        if(Enum.TryParse(propInfo.PropertyType, stringValue, out object result))
+        if (Enum.TryParse(propInfo.PropertyType, stringValue, out object result))
         {
             Value = result;
         }
@@ -126,12 +125,24 @@
         }
     }
 
-    private string DisplayName { get
+    private string DisplayName
+    {
+        get
         {
             Type t = Object.GetType();
             var o = Convert.ChangeType(Object, t);
             var dd = Object.GetType().GetProperty(Path).GetCustomAttribute(typeof(DisplayNameAttribute)) as DisplayNameAttribute;
-            return dd?.Name ?? Path.Split('.').Last(); ;
+            return dd?.DisplayName ?? Path.Split('.').Last();
+        }
+    }
+    private string Description
+    {
+        get
+        {
+            Type t = Object.GetType();
+            var o = Convert.ChangeType(Object, t);
+            var dd = Object.GetType().GetProperty(Path).GetCustomAttribute(typeof(DescriptionAttribute)) as DescriptionAttribute;
+            return dd?.Description ?? "";
         }
     }
 

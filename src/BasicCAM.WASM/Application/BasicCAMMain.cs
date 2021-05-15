@@ -1,134 +1,126 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using BasicCAM.Preferences;
-using BasicCAM;
-using BasicCAM.Interpreter;
 using System.IO;
-using Tewr.Blazor.FileReader;
-using BlazorStrap;
-using Microsoft.AspNetCore.Components;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
+
+using BasicCAM.Core;
+using BasicCAM.Core.Solutions;
+using BasicCAM.Core.Preferences;
+
 using Microsoft.Extensions.Logging;
 using Blazored.LocalStorage;
-using System.Text;
-using Blazored.Modal.Services;
-using BasicCAM.GCode;
-using System.Collections.ObjectModel;
-using Microsoft.JSInterop;
-using Newtonsoft.Json;
-using BasicCAM.Segments;
-using BasicCAM.WASM.Serialization;
+
+using BasicCAM.Core.GCode;
 using System.Text.Json;
-using BasicCAMWebAppWASM.Models.Preferences;
+using BasicCAM.Core.Features;
 
 namespace BasicCAM.WASM.Application
 {
     public class BasicCAMMain
     {
-        private readonly IJSRuntime jsRuntime;
-
-        enum Trigger
-        {
-        }
-
-        enum State
-        {
-            Ready,
-            Generating,
-            PendingChanges,
-        }
-
-        public ILogger<BasicCAMMain> logger { get; set; }
-        public BasicCAMMain(ILogger<BasicCAMMain> _logger, ILocalStorageService _localStorage, IJSRuntime jsRuntime)
+        private readonly ILogger<BasicCAMMain> logger;
+        private readonly ILocalStorageService localStorage;
+        public BasicCAMMain(ILogger<BasicCAMMain> _logger, ILocalStorageService _localStorage, IUserInputService userInputService)
         {
             logger = _logger;
             localStorage = _localStorage;
-            this.jsRuntime = jsRuntime;
+            UserInputService = userInputService;
+            InitializeData();
         }
-        public ILocalStorageService localStorage { get; set; }
-        public ICAM_Preferences CAM_Preferences { get; set; } = new CAM_Preferences();
-        public IDocument_Preferences Document_Preferences { get; set; } = new Document_Preferences();
-        public IGCode_Preferences GCode_Preferences { get; set; } = new GCode_Preferences();
-        public IMachine_Preferences Machine_Preferences { get; set; } = new Machine_Preferences();
-
+        
+        public IUserInputService UserInputService { get; }
         public BasicCAMProject BasicCAMProject { get; set; }
-        public BasicCAMSolution BasicCAMSolution { get; set; }
+        public CAMSolution BasicCAMSolution { get; set; }
+        public GCodeOutput GCodeOutput { get; set; }
+        public bool UnsavedChanges { get; private set; } = true;
 
-        private DXF_Interpreter DXF_Interpreter { get; set; }
+        private bool _hasChanges = false;
+        public bool HasChanges { get
+            {
+                return _hasChanges;
+            }
+            private set
+            {
+                if(_hasChanges)
+                    OnSolutionStateChange(new SolutionStateChangeEventArgs(value));
 
-        private int ProjectID { get; set; }
-        private string ProjectName { get; set; }
-        public bool UnsavedChanges { get; private set; }
-        public List<string> GCode { get; set; } = new List<string>();
+                _hasChanges = value;
+            }
+        }
+
+        private void InitializeData()
+        {
+
+            BasicCAMProject = new BasicCAMProject(
+                new GCode_Preferences(),
+                new CAM_Preferences(),
+                new Document_Preferences(),
+                new Machine_Preferences(),
+                new Tool_Preferences());
+
+            BasicCAMSolution = new CAMSolution(BasicCAMProject);
+
+            GCodeOutput = new GCodeOutput(BasicCAMProject.GCode_Preferences);
+        }
+
+        public void PreferenceChanged()
+        {
+            HasChanges = true;
+            UnsavedChanges = true;
+        }
 
         public async Task AddFile(byte[] fileBytes)
         {
             try
             {
-                using (MemoryStream stream = new MemoryStream())
-                {
-                    stream.Write(fileBytes, 0, fileBytes.Length);
-                    stream.Seek(0, SeekOrigin.Begin);
+                var featureBuilder = new DXFFeatureBuilder(BasicCAMProject.Document_Preferences);
+                var features = await featureBuilder.FromBytes(fileBytes);
 
-                    DXF_Interpreter = new DXF_Interpreter();
-                    await DXF_Interpreter.LoadStream(stream);
+                BasicCAMProject.AddFeatures(features);
 
-                    BasicCAMProject = new BasicCAMProject(GCode_Preferences, CAM_Preferences, Document_Preferences, Machine_Preferences);
-
-                    BasicCAMProject.LoadDocument(DXF_Interpreter);
-
-                    BasicCAMSolution = new BasicCAMSolution(BasicCAMProject);
-                    BasicCAMSolution.Solve();
-
-                    logger.LogInformation(BasicCAMSolution.Segments.Count.ToString());
-                }
+                logger.LogInformation($"Found {BasicCAMProject.Features.Count} features from {BasicCAMProject.Features.Sum(f=>f.Segments.Count)} segments");
             }
             catch (Exception e)
             {
-                NewProject();
                 logger.LogError(e.Message, "Failed to open file.");
             }
+
+            await RedrawCAD();
+            await Recalculate();
         }
 
         /// <summary>
         /// Clears current project and creates a new empty project
         /// </summary>
-        public void NewProject()
+        public async Task NewProject()
         {
 
             logger.LogInformation("New Project.");
 
-            if (!ContinueWithUnsavedChanges())
+            if (!(await ContinueWithUnsavedChanges()))
                 return;
 
+            InitializeData();
 
-            CAM_Preferences = new CAM_Preferences();
-            Document_Preferences = new Document_Preferences();
-            GCode_Preferences = new GCode_Preferences();
-            Machine_Preferences = new Machine_Preferences();
-
-            BasicCAMProject = new BasicCAMProject(
-                GCode_Preferences,
-                CAM_Preferences,
-                Document_Preferences,
-                Machine_Preferences);
-
-            BasicCAMSolution = new BasicCAMSolution(BasicCAMProject);
-
-            Refresh();
+            await RedrawCAD();
+            await Recalculate();
         }
 
+        
 
         /// <summary>
         /// Save project under new reference
         /// </summary>
         public async Task SaveProjectAs()
         {
-            //Open naming modal/menu
-            ProjectName = ProjectName; //TODO
+            await Recalculate();
+
+            BasicCAMProject.Guid = (new Guid()).ToString();
+            
             await SaveProject();
         }
 
@@ -137,164 +129,124 @@ namespace BasicCAM.WASM.Application
         /// </summary>
         public async Task SaveProject()
         {
-            if (String.IsNullOrEmpty(ProjectName))
-                await SaveProjectAs();
+            await Recalculate();
 
             //Create a serialized file 
-            using (var ms = new MemoryStream())
-            {
-                BinaryFormatter formatter = new BinaryFormatter();
-
-                try
-                {
-                    formatter.Serialize(ms, BasicCAMProject);
-
-                    await localStorage.SetItemAsync(ProjectName, Encoding.ASCII.GetString(ms.ToArray()));
-
-                    UnsavedChanges = false;
-                    //TOTO Write to server/db
-
-                }
-                catch (SerializationException e)
-                {
-                    logger.LogError(e.Message, "Failed to serialize.");
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e.Message, "Error during saving.");
-                }
-            }
-        }
-
-        public async Task LoadProject()
-        {
-            if (!ContinueWithUnsavedChanges())
-                return;
-
-
-            string projectString = await localStorage.GetItemAsync<string>(ProjectName);
-            byte[] projectBytes = ASCIIEncoding.ASCII.GetBytes(projectString);
+            using var ms = new MemoryStream();
 
             try
             {
-                using (var ms = new MemoryStream(projectBytes))
-                {
+                BasicCAMProject.SaveTime = DateTime.UtcNow;
 
-                    BinaryFormatter formatter = new BinaryFormatter();
-                    BasicCAMProject = (BasicCAMProject)formatter.Deserialize(ms);
-                    BasicCAMSolution = new BasicCAMSolution(BasicCAMProject);
-                    Refresh();
-                }
+                await JsonSerializer.SerializeAsync<BasicCAMProject>(ms, BasicCAMProject);
+
+                await localStorage.SetItemAsync(BasicCAMProject.Guid, Encoding.ASCII.GetString(ms.ToArray()));
+
+                UnsavedChanges = false;
+            }
+            catch (SerializationException e)
+            {
+                logger.LogError(e.Message, "Failed to serialize.");
             }
             catch (Exception e)
             {
-                NewProject();
+                logger.LogError(e.Message, "Error during saving.");
+            }
+        }
+
+        public async Task LoadProject(byte[] projectBytes)
+        {
+            if (!(await ContinueWithUnsavedChanges()))
+                return;
+
+            try
+            {
+                BasicCAMProject = JsonSerializer.Deserialize<BasicCAMProject>(projectBytes);
+
+                BasicCAMSolution = new CAMSolution(BasicCAMProject);
+
+                GCodeOutput = new GCodeOutput(BasicCAMProject.GCode_Preferences);
+
+                await Recalculate();
+            }
+            catch (Exception e)
+            {
+                await NewProject();
                 logger.LogError(e.Message, "Failed to deserialize.");
             }
-
-            Refresh();
+            await RedrawCAD();
+            await Recalculate();
         }
 
-
-        /// <summary>
-        /// Refresh Solution and UI
-        /// </summary>
-        private void Refresh()
+        public async Task RedrawCAD()
         {
-            Reclaculate();
-
-            Reload();
+            OnCadDataChanged(new EventArgs());
         }
-
-        /// <summary>
-        /// Reload the View from the current drawing solution
-        /// </summary>
-        private void Reload()
-        {
-            return;
-        }
-
         /// <summary>
         /// Recalulate the soltuion
         /// </summary>
         /// <param name="obj"></param>
-        public async void Reclaculate()
+        public async Task Recalculate()
         {
             if (null == BasicCAMSolution)
                 return;
 
-            BasicCAMSolution.Solve();
+            await BasicCAMSolution.SolveAsync();
 
-            await WriteSolution();
-            await DisplaySolution();
+            GCodeOutput
+                .Reset()
+                .AddSegments(BasicCAMSolution.SolutionSegments);
+
+            HasChanges = false;
+
             OnSolutionDataChanged(new EventArgs());
-        }
-
-        /// <summary>
-        /// Write soltuion GCode into text box and link to drawing
-        /// </summary>
-        /// <returns></returns>
-        private async Task WriteSolution()
-        {
-            byte[] data;
-            GCodeWriter gcw = new GCodeWriter(BasicCAMSolution);
-            using (MemoryStream ms = new MemoryStream())
-            {
-                await gcw.WriteToStreamAsync(ms);
-                ms.Seek(0, SeekOrigin.Begin);
-                using (StreamReader sr = new StreamReader(ms, Encoding.UTF8))
-                {
-                    while (!sr.EndOfStream)
-                    {
-                        var line = await sr.ReadLineAsync();
-                        logger.LogDebug(line);
-                        GCode.Add(line);
-                    }
-                }
-            }
-
-        }
-
-        /// <summary>
-        /// Sends solution geometery to JS renderer
-        /// </summary>
-        /// <returns></returns>
-        private async Task DisplaySolution()
-        {
-            //JsonSerializerSettings settings = new JsonSerializerSettings
-            //{
-            //    SerializationBinder = new KnownTypesBinder
-            //    {
-            //        KnownTypes = new List<Type> { typeof(ArcSegment), typeof(LinearSegment) }
-            //    },
-            //    TypeNameHandling = TypeNameHandling.Objects
-            //};
-
-            //var json = JsonConvert.SerializeObject(BasicCAMSolution.Segments);
-
-            var options = new JsonSerializerOptions();
-            options.Converters.Add(new SegmentSerializerConverter());
-            string json = System.Text.Json.JsonSerializer.Serialize(BasicCAMSolution.Segments, options);
-
-            await jsRuntime.InvokeVoidAsync("BasicCAMJS.plot", json);
         }
 
         /// <summary>
         /// Checks if there are unsaved changes, then prompts to continue with outsaving them
         /// </summary>
         /// <returns>Returns true if the calling operation should continue</returns>
-        private bool ContinueWithUnsavedChanges()
+        private async Task<bool> ContinueWithUnsavedChanges()
         {
-            return true;
+            if (UnsavedChanges)
+                return await UserInputService.VerifyAction("Unsaved Changes", "Project contains unsaved changes. Continue without saving?");
 
+            return true;
         }
 
 
         public event EventHandler SolutionDataChanged;
-        public virtual async void OnSolutionDataChanged(EventArgs e)
+        private void OnSolutionDataChanged(EventArgs e)
         {
             EventHandler handler = SolutionDataChanged;
             handler?.Invoke(this, e);
+        }
+
+
+        public event EventHandler CadDataChanged;
+        private void OnCadDataChanged(EventArgs e)
+        {
+            EventHandler handler = CadDataChanged;
+            handler?.Invoke(this, e);
+        }
+
+
+        public event SolutionStateChangeEventHandler SolutionStateChanged;
+        private void OnSolutionStateChange(SolutionStateChangeEventArgs e)
+        {
+            SolutionStateChangeEventHandler handler = SolutionStateChanged;
+            handler?.Invoke(this, e);
+        }
+        public delegate void SolutionStateChangeEventHandler(object sender, SolutionStateChangeEventArgs args);
+
+        public class SolutionStateChangeEventArgs : EventArgs
+        {
+            public SolutionStateChangeEventArgs(bool hasChanges)
+            {
+                HasChanges = hasChanges;
+            }
+
+            public bool HasChanges { get; }
         }
     }
 }

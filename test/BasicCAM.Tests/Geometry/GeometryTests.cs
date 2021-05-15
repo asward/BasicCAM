@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
-using BasicCAM.Segments;
-using BasicCAM.Geometry;
+using BasicCAM.Core.Segments;
+using BasicCAM.Core.Geometry;
 using FluentAssertions;
 
 namespace BasicCAM.Tests.Geometry
@@ -20,18 +20,15 @@ namespace BasicCAM.Tests.Geometry
         //[InlineData(true, 1, -1, -1, 1, Math.PI / 4, -Math.PI * 3 / 4)]
         public void ArcAnglesAreCorrect(bool cw, double x1, double y1, double x2, double y2, double expectedStart, double expectedEnd)
         {
-            var ArcSegment = new ArcSegment()
-            {
-                Center = new Point(0, 0),
-                Radius = 1,
-                CW = cw,
-                Start = new Point(x1, y1),
-                End = new Point(x2, y2)
-            };
+            var Center = new Point(0, 0);
+                var Radius = 1;
+                var CW = cw;
+                var Start = new Point(x1, y1);
+                var End = new Point(x2, y2);
+            var ArcSegment = new ArcSegment(Center, Radius, Start, End, CW);
 
             ArcSegment.StartAngle.Should().BeApproximately(expectedStart, 0.00001);
             ArcSegment.EndAngle.Should().BeApproximately(expectedEnd, 0.00001);
-
         }
 
 
@@ -42,11 +39,11 @@ namespace BasicCAM.Tests.Geometry
         [InlineData(1, -1, -1, 1)]
         public void LineAnglesAreCorrect(double x1, double y1, double x2, double y2)
         {
-            var lineSegment = new LinearSegment()
-            {
-                Start = new Point(x1, y1),
-                End = new Point(x2, y2)
-            };
+
+            var Start = new Point(x1, y1);
+            var End = new Point(x2, y2);
+            var lineSegment = new LinearSegment(Start, End);
+
 
             var expected = Math.Atan2((y2 - y1) , (x2 - x1));
 
